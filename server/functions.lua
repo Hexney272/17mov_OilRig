@@ -76,15 +76,30 @@ function Notify(source, msg)
 end
 
 function Pay(source, amount, gasProgress, tasksProgress, lobbySize)
+    -- Leveling rendszer: OlajFúró kategória szorzó + XP jutalom (Ft)
+    local finalAmount = amount
+    if GetResourceState('realcity-leveling') == 'started' then
+        -- OlajFúró kategória szorzó alkalmazása
+        finalAmount = exports['realcity-leveling']:ScaleCategoryPay(source, 'oilrig', amount)
+        -- OlajFúró kategória XP
+        exports['realcity-leveling']:AddCategoryXP(source, 'oilrig', math.floor(finalAmount * 0.06), 'oilrig_job')
+        -- Globális XP (kisebb)
+        exports['realcity-leveling']:AddXP(source, math.floor(finalAmount * 0.02), 'oilrig_job')
+        -- Állóképesség XP (nehéz fizikai munka az olajfúrón)
+        exports['realcity-leveling']:AddSkillXP(source, 'stamina', 3)
+        -- Erő XP (emelés, fúrás)
+        exports['realcity-leveling']:AddSkillXP(source, 'strength', 2)
+    end
+
     if Config.Framework == "QBCore" then
         local Player = Core.Functions.GetPlayer(source)
         if Player ~= nil and Player.Functions ~= nil then
-            Player.Functions.AddMoney("cash", amount)
+            Player.Functions.AddMoney("cash", finalAmount)
         end
     elseif Config.Framework == "ESX" then
         local xPlayer = Core.GetPlayerFromId(source)
         if xPlayer ~= nil and xPlayer.addMoney ~= nil then
-            xPlayer.addMoney(amount)
+            xPlayer.addMoney(finalAmount)
         end
     else
         -- Configure here ur payment
